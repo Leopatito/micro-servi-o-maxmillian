@@ -1,16 +1,29 @@
 services:
+  # API Gateway (NGINX) centralizando a porta de entrada
+  api-gateway:
+    image: nginx:alpine
+    container_name: api-gateway
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - flask-api
+      - nodejs-api
+
   flask-api:
     build: ./python
     container_name: flask-api
-    ports:
-      - "5000:5000"
+    expose: # Substitui 'ports' para esconder a porta do mundo externo
+      - "5000"
     volumes:
       - sqlite_data:/app/data
+
   nodejs-api:
     build: ./nodejs
     container_name: node-api
-    ports:
-     - "3000:3000"
+    expose: # Substitui 'ports'
+      - "3000"
     volumes:
       - trabalho-max_sqlite_data:/app/data:rw
 
