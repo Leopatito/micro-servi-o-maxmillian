@@ -1,13 +1,17 @@
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 import sqlite3
 import os
 
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 app = Flask(__name__)
 
 DB_PATH = "/app/data/banco.db"
 
-
+@app.route('/metrics')
+def metrics():
+    return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
+    
 def conectar():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 

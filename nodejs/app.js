@@ -5,7 +5,18 @@ const { open } = require("sqlite");
 const app = express();
 app.use(express.json());
 
-// Função para inicializar o banco de dados
+const promClient = require('prom-client');
+
+
+const collectDefaultMetrics = promClient.collectDefaultMetrics;
+collectDefaultMetrics({ register: promClient.register });
+
+
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', promClient.register.contentType);
+  res.end(await promClient.register.metrics());
+});
+
 let db;
 async function initDB() {
     db = await open({
@@ -13,7 +24,7 @@ async function initDB() {
         driver: sqlite3.Database
     });
 
-    // Cria a tabela se ela não existir
+   
     await db.exec(`
         CREATE TABLE IF NOT EXISTS tarefas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,7 +35,6 @@ async function initDB() {
     `);
 }
 
-// 1. CRIAR uma nova tarefa (Create)
 app.post("/tarefas", async (req, res) => {
     const { titulo, descricao } = req.body;
     
@@ -44,15 +54,13 @@ app.post("/tarefas", async (req, res) => {
     }
 });
 
-// 2. LISTAR todas as tarefas (Read)
 app.get("/tarefas", async (req, res) => {
     const tarefas = await db.all('SELECT * FROM tarefas');
-    // Converte o valor de concluida (0 ou 1 do SQLite) para booleano (false ou true)
+  
     const tarefasFormatadas = tarefas.map(t => ({ ...t, concluida: !!t.concluida }));
     return res.json(tarefasFormatadas);
 });
 
-// 3. BUSCAR uma tarefa específica pelo ID (Read)
 app.get("/tarefas/:id", async (req, res) => {
     const tarefa = await db.get('SELECT * FROM tarefas WHERE id = ?', [req.params.id]);
 
@@ -64,7 +72,7 @@ app.get("/tarefas/:id", async (req, res) => {
     return res.json(tarefa);
 });
 
-// 4. ATUALIZAR uma tarefa (Update)
+
 app.put("/tarefas/:id", async (req, res) => {
     const id = req.params.id;
     const { titulo, descricao, concluida } = req.body;
@@ -74,7 +82,6 @@ app.put("/tarefas/:id", async (req, res) => {
         return res.status(404).json({ erro: "Tarefa não encontrada" });
     }
 
-    // Mantém os valores antigos caso algum campo não seja enviado
     const novoTitulo = titulo !== undefined ? titulo : tarefaExistente.titulo;
     const novaDescricao = descricao !== undefined ? descricao : tarefaExistente.descricao;
     const novaConcluida = concluida !== undefined ? (concluida ? 1 : 0) : tarefaExistente.concluida;
@@ -87,7 +94,7 @@ app.put("/tarefas/:id", async (req, res) => {
     return res.json({ id, titulo: novoTitulo, descricao: novaDescricao, concluida: !!novaConcluida });
 });
 
-// 5. DELETAR uma tarefa (Delete)
+
 app.delete("/tarefas/:id", async (req, res) => {
     const result = await db.run('DELETE FROM tarefas WHERE id = ?', [req.params.id]);
 
@@ -98,7 +105,7 @@ app.delete("/tarefas/:id", async (req, res) => {
     return res.status(204).send();
 });
 
-// Inicia o banco de dados e depois o servidor
+
 initDB().then(() => {
     const PORT = 3000;
     app.listen(PORT, () => {
