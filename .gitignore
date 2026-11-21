@@ -1,1 +1,6 @@
-/nodejs/node_modules
+nodejs/node_modules/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
